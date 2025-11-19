@@ -2,31 +2,21 @@
 
 
 ## 📘 Overview
-Provide a brief, high-level explanation of what the project does, why it exists, and what problem it solves.  
-Keep this section to 3–6 sentences.
+This project extends the Kitsune Network Intrusion Detection System to analyze XML-based network traffic. Many devices communicate using XML, and these messages can be manipulated or altered by attackers. To support detection of abnormal XML behavior, the project captures network traffic, extracts XML payloads from PCAP files, parses the XML, and converts it into features that Kitsune can process
 
 ---
 
 ## 🎯 Project Goal
-Summarize the main objective of this project.  
-What is the final outcome you want?  
-What does “success” look like?
-
-Examples:
-- “Detect XML packets inside PCAP files and validate message structure.”
-- “Build an end-to-end pipeline for XYZ.”  
-(Replace with your actual goal.)
+The goal of this project is to create an end-to-end XML intrusion detection pipeline. Success includes capturing network traffic containing XML, extracting XML messages from PCAP files, parsing and validating the XML structure, and generating numerical features that allow Kitsune to learn normal XML behavior. The final objective is for Kitsune to detect differences between normal XML traffic and intentionally altered or malicious XML samples.
 
 ---
 
 # 👥 Team Members & Roles
 
-## **Role 1 – _Title of Role_**  
-**Name:** _Full Name_  
+## **Role 1 – XML Payload Extraction**  
+**Name:** Ami Bell
 **Description:**  
-Provide a short paragraph describing what this role is responsible for.  
-Include key tasks, deliverables, and technical responsibilities.
-
+Responsible for extracting XML payloads from PCAP files using Scapy. This role reads captured network traffic, identifies packets containing XML, isolates complete XML strings, and prepares them for XML parsing in Role 2.
 ---
 
 ## **Role 2 – XML Parsing**  
