@@ -47,12 +47,30 @@ xml_parser_tester.py tests the parser using both valid and invalid XML samples t
 
 ---
 
-## **Role 3 – _Title of Role_**  
-**Name:** _Full Name_  
+## **Role 3 – XML Feature Extractor**  
+**Name:** Nivah Nyangaresi  
 **Description:**  
-Provide a short paragraph describing what this role is responsible for.  
-Describe tools, features, or code they contributed.
+Implemented the XML feature extraction component of the pipeline by creating two files:
 
+xml_features.py
+xml_fe_tester.py
+
+xml_features.py contains the required xml_features(root, malformed_flag, xml_string) function.
+This function takes the parsed XML output from Role 2 and converts it into a fixed-length numerical feature vector for use with Kitsune.
+The function extracts 8 features:
+
+tag_count – Total number of XML tags
+unique_tag_count – Number of unique tag names
+max_depth – Maximum depth of the XML tree
+attribute_count – Total number of XML attributes
+text_length – Total length of text content within tags
+has_metric – 1 if <MetricValue> tag is present, 0 otherwise
+malformed – 1 if XML parsing failed, 0 if valid
+size_bytes – Size of the XML string in bytes
+
+For valid XML, the function returns a meaningful feature vector.
+For malformed XML, the function returns a zero-structure vector with the malformed flag set to 1.
+xml_fe_tester.py tests the feature extractor using valid, malicious-like, and malformed XML samples to verify correct behavior and consistent vector length.
 ---
 
 ## **Role 4 – _Title of Role_**  
