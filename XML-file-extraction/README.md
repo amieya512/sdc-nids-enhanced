@@ -63,10 +63,9 @@ For malformed XML, the function returns a zero-structure vector with the malform
 xml_fe_tester.py tests the feature extractor using valid, malicious-like, and malformed XML samples to verify correct behavior and consistent vector length.
 ---
 
-## **Role 4 – _Title of Role_**  
-**Name:** _Full Name_  
+## **Role 4 – XML integration 
+**Name:** Jeremy Adiuku
 **Description:**  
-Provide a short paragraph describing what this role is responsible for.  
-Mention their major contributions or focus areas.
+integration of all 3 roles with the responsiblity of training and testing of the Kitsune. In the xml_integration.py file are the functions: def get_xml_vector_from_packet(packet), def kitsune_packet_features(packet, fe), def train_kitsune(normal_pcap_path), def test_kitsune(malicious_pcap_path, fe), which all include functions from the other files from the other roles.
 
 ---
