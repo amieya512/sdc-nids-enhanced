@@ -1,105 +1,108 @@
 import numpy as np
-from scapy.all import rdpcap
-from kitsune import Kitsune
 import matplotlib.pyplot as plt
+from scapy.all import rdpcap
 
-from xml_extractor import extract_xml_payloads     
-from xml_parser import parse_xml                   
-from xml_features import xml_features              
+import sys, os
+sys.path.append(os.path.abspath("XML-file-extraction"))
 
-def get_xml_vector_from_packet(packet):
+from xml_extraction import extract_xml_from_pcap
+from xml_parser import parse_xml
+from xml_feature_extractor import xml_features
+
+from Kitsune import Kitsune
+
+
+# -----------------------------------------------------
+# XML scoring (this part works fine)
+# -----------------------------------------------------
+def extract_xml_from_packet(packet):
     if packet.haslayer("Raw"):
         try:
             payload = packet["Raw"].load.decode(errors="ignore")
         except:
-            return [0]*8  
+            return None
 
         if "<?xml" in payload:
-            xml_start = payload.index("<?xml")
-            xml_string = payload[xml_start:]
+            idx = payload.index("<?xml")
+            return payload[idx:]
 
-            root, malformed_flag = parse_xml(xml_string)
-            return xml_features(root, malformed_flag, xml_string)
-
-    # No XML present
-    return [0] * 8
-
-def kitsune_packet_features(packet, fe):
-    try:
-        return fe.process_packet(packet)
-    except:
-        return None
-
-def train_kitsune(normal_pcap_path):
-
-    print("\n=== TRAINING ON NORMAL XML TRAFFIC ===")
-
-    packets = rdpcap(normal_pcap_path)
-  
-    fe = Kitsune(feature_number=None, mode="train")
-
-    combined_vectors = []
-
-    for pkt in packets:
-        
-        base = kitsune_packet_features(pkt, fe)
-        if base is None:
-            continue
-
-      
-        xml_vec = get_xml_vector_from_packet(pkt)
+    return None
 
 
-        combined = np.concatenate([base, xml_vec])
-        combined_vectors.append(combined)
+def extract_xml_score(packet):
+    xml_string = extract_xml_from_packet(packet)
+    if xml_string is None:
+        return 0
 
-        fe.process(combined)
+    root, malformed = parse_xml(xml_string)
+    features = xml_features(root, malformed, xml_string)
+    return sum(features)
 
-    print("Training complete.\nPackets processed:", len(combined_vectors))
 
-    return fe
+# -----------------------------------------------------
+# Run Kitsune the CORRECT way:
+# Kitsune internally loads the pcap and the FE
+# You simply call proc_next_packet() until finished
+# -----------------------------------------------------
+def run_kitsune(file_path):
+    kit = Kitsune(
+        file_path=file_path,
+        limit=None,                 # read entire pcap
+        max_autoencoder_size=10,
+        FM_grace_period=1000,
+        AD_grace_period=5000,
+        learning_rate=0.1,
+        hidden_ratio=0.75,
+        sensitivity=1
+    )
 
-def test_kitsune(malicious_pcap_path, fe):
+    rmses = []
+    while True:
+        score = kit.proc_next_packet()
+        if score == -1:
+            break
+        rmses.append(score)
 
-    print("\n=== TESTING ON MALICIOUS-LIKE XML TRAFFIC ===")
+    return rmses
 
-    packets = rdpcap(malicious_pcap_path)
-    anomaly_scores = []
 
-    for pkt in packets:
-        base = kitsune_packet_features(pkt, fe)
-        if base is None:
-            continue
+# -----------------------------------------------------
+# XML scoring pipeline
+# -----------------------------------------------------
+def run_xml_detector(file_path):
+    pkts = rdpcap(file_path)
+    scores = []
+    for p in pkts:
+        scores.append(extract_xml_score(p))
+    return scores
 
-        xml_vec = get_xml_vector_from_packet(pkt)
-        combined = np.concatenate([base, xml_vec])
 
-        score = fe.process(combined)
-        anomaly_scores.append(score)
+# -----------------------------------------------------
+# Main: Run BOTH systems
+# -----------------------------------------------------
+def main():
+    malicious_pcap = "XML-file-extraction/pcaps/malicious.xml.pcap"
 
-    print("Testing complete. Packets processed:", len(anomaly_scores))
+    print("Running Kitsune...")
+    kitsune_scores = run_kitsune(malicious_pcap)
 
-    return anomaly_scores
+    print("Running XML detector...")
+    xml_scores = run_xml_detector(malicious_pcap)
 
-if __name__ == "__main__":
+    # Pad xml scores if fewer than Kitsune’s packets
+    if len(xml_scores) < len(kitsune_scores):
+        xml_scores += [0] * (len(kitsune_scores) - len(xml_scores))
 
-    normal_pcap = "normal.xml.pcap"
-    malicious_pcap = "malicious.xml.pcap"
-
-    # Train Kitsune
-    fe = train_kitsune(normal_pcap)
-
-    # Test Kitsune
-    anomaly_scores = test_kitsune(malicious_pcap, fe)
-
-    plt.figure(figsize=(12, 6))
-    plt.plot(anomaly_scores)
-    plt.title("Kitsune Anomaly Scores – Malicious XML Test")
+    plt.figure(figsize=(12,6))
+    plt.plot(kitsune_scores, label="Kitsune RMSE")
+    plt.plot(xml_scores, label="XML Score")
+    plt.legend()
     plt.xlabel("Packet Index")
-    plt.ylabel("Anomaly Score")
+    plt.ylabel("Score")
+    plt.title("Kitsune + XML Detection")
     plt.grid(True)
     plt.show()
 
-    print("\nMax Score:", max(anomaly_scores))
-    print("Min Score:", min(anomaly_scores))
-    print("Average Score:", sum(anomaly_scores)/len(anomaly_scores))
+
+if __name__ == "__main__":
+    main()
